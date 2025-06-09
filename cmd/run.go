@@ -161,7 +161,6 @@ func (m *CarCopyManager) Run(ctx context.Context) error {
 
 		// do job
 		for _, newJob := range newJobs {
-			log.Warnw("try to add new job", "carFile", newJob)
 			go func(carFile *CarFileInfo) {
 				err = m.processJob(ctx, carFile)
 				if err != nil {
