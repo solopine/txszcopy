@@ -204,10 +204,13 @@ func (m *CarCopyManager) processJob(ctx context.Context, carFile *CarFileInfo) e
 	log.Infow("try run copy cmd.", "cmd", cmd.String(), "carFile", carFile)
 	var errOut bytes.Buffer
 	cmd.Stderr = &errOut
+
+	var stdOut bytes.Buffer
+	cmd.Stdout = &stdOut
 	if err := cmd.Run(); err != nil {
 		return xerrors.Errorf("exec %s %s. (stderr: %s): %w", m.copyScriptPath, carFile.Path, strings.TrimSpace(errOut.String()), err)
 	}
-	log.Infow("end run copy cmd.", "cmd", cmd.String(), "carFile", carFile)
+	log.Infow("end run copy cmd.", "stdOut", stdOut.String(), "cmd", cmd.String(), "carFile", carFile)
 
 	//
 	log.Infow("waitCarFileRemoved", "carFile", carFile.Path)
