@@ -113,7 +113,7 @@ func NewCarCopyManager(rootCarDir string, copyScriptPath string, parallel int) (
 		copyScriptPath: copyScriptPath,
 		parallel:       parallel,
 
-		parallelThrottle: make(chan struct{}, parallel),
+		parallelThrottle: make(chan struct{}, parallel+1),
 		runningJobs:      map[cid.Cid]CarFileInfo{},
 	}
 
@@ -130,6 +130,17 @@ func (m *CarCopyManager) Run(ctx context.Context) error {
 
 		}
 
+		m.runningJobsLock.RLock()
+		runningJobCount := len(m.runningJobs)
+		m.runningJobsLock.RUnlock()
+
+		log.Infow("runningJobs", "runningJobCount", runningJobCount)
+		if runningJobCount >= m.parallel {
+			log.Infow("running job count exceeded, so just wait", "runningJobCount", runningJobCount, "max-parallel", m.parallel)
+			time.Sleep(time.Second * 20)
+			continue
+		}
+
 		carFiles, err := getSortedCarFiles(m.rootCarDir)
 		if err != nil {
 			return xerrors.Errorf("%w", err)
@@ -138,20 +149,7 @@ func (m *CarCopyManager) Run(ctx context.Context) error {
 		log.Infow("getSortedCarFiles", "file-count", carFileCount, "parallel", m.parallel)
 
 		//
-		m.runningJobsLock.RLock()
-		runningJobCount := len(m.runningJobs)
-		m.runningJobsLock.RUnlock()
-
-		log.Infow("runningJobs", "runningJobCount", runningJobCount)
-
-		if runningJobCount >= m.parallel {
-			log.Infow("running job count exceeded, so just wait", "runningJobCount", runningJobCount, "max-parallel", m.parallel)
-			time.Sleep(time.Second * 10)
-			continue
-		}
-
 		var newJobs []CarFileInfo
-
 		m.runningJobsLock.RLock()
 		for _, carFile := range carFiles {
 			if _, ok := m.runningJobs[carFile.PieceCid]; ok {
@@ -171,7 +169,6 @@ func (m *CarCopyManager) Run(ctx context.Context) error {
 				}
 			}(&newJob)
 		}
-		time.Sleep(time.Second * 10)
 	}
 }
 
