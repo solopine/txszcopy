@@ -1,0 +1,15 @@
+**/*.a
+**/*.pc
+/**/*/.DS_STORE
+.DS_STORE
+build/.*
+out/.*
+/vendor
+
+.idea
+.vscode
+/venv
+scratchpad
+
+# to ensure tests build: itests/ go test -c .
+/itests/itests.test
